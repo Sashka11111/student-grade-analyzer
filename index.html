@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Аналізатор оцінок студентів Pro</title>
+    <meta
+      name="description"
+      content="Професійний інструмент для точного аналізу академічної успішності. Розрахунок ECTS, GPA та групової статистики."
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body>
+    <div id="loading-overlay">
+      <div class="spinner"></div>
+      <p>Обробка даних...</p>
+    </div>
+
+    <div class="container">
+      <header>
+        <h1>Аналізатор оцінок</h1>
+        <p id="header-desc">Точний розрахунок академічних показників та ECTS-розподілу</p>
+      </header>
+
+      <main>
+        <section class="info-section fade-in">
+          <h3><i data-lucide="info"></i> Інструкція та методологія</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <h4>Як підготувати файл</h4>
+              <p>Файл Excel повинен містити список студентів. За замовчуванням програма шукає:</p>
+              <ul>
+                <li><strong>ПІБ:</strong> Колонка A або B.</li>
+                <li><strong>Оцінки:</strong> Починаючи з колонки C.</li>
+                <li><strong>Діапазон:</strong> Ви можете налаштувати рядки вручну після завантаження.</li>
+              </ul>
+            </div>
+            <div class="info-item">
+              <h4>Шкала ECTS</h4>
+              <p>Розрахунок базується на стандартній 100-бальній шкалі:</p>
+              <ul>
+                <li><strong>A (90-100):</strong> Відмінно</li>
+                <li><strong>B (82-89), C (74-81):</strong> Добре</li>
+                <li><strong>D (64-73), E (60-63):</strong> Задовільно</li>
+                <li><strong>FX (35-59), F (1-34):</strong> Незадовільно</li>
+              </ul>
+            </div>
+            <div class="info-item">
+              <h4>Точність розрахунків</h4>
+              <p>
+                Програма використовує прецизійне округлення до 1 знака після коми та автоматично коригує похибки для
+                досягнення суми 100.0%.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <div id="upload-zone" class="fade-in">
+          <i data-lucide="file-up"></i>
+          <h3>Завантажте Excel відомість</h3>
+          <p>Перетягніть файл сюди або натисніть кнопку</p>
+          <input type="file" id="file-input" accept=".xlsx,.xls" style="display: none" />
+          <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px">
+            <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+              <i data-lucide="plus"></i> Обрати файл
+            </button>
+            <button class="btn btn-outline" onclick="downloadTemplate()">
+              <i data-lucide="file-spreadsheet"></i> Завантажити шаблон
+            </button>
+          </div>
+        </div>
+
+        <div id="config-zone" class="fade-in" style="display: none">
+          <div class="config-grid">
+            <div class="input-group">
+              <label for="cfg-start">Перший рядок студента</label>
+              <input type="number" id="cfg-start" value="5" min="1" />
+            </div>
+            <div class="input-group">
+              <label for="cfg-end">Останній рядок студента</label>
+              <input type="number" id="cfg-end" value="24" min="1" />
+            </div>
+            <div class="input-group">
+              <label for="cfg-subjects">Кількість предметів</label>
+              <input type="number" id="cfg-subjects" value="48" min="1" />
+            </div>
+          </div>
+          <button id="calc-btn" class="btn btn-primary" onclick="calculate()">
+            <i data-lucide="calculator"></i> Виконати аналіз
+          </button>
+        </div>
+
+        <div id="group-stats" class="fade-in" style="display: none">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="label">Сер. бал групи</span>
+              <span class="value" id="group-avg">0.0</span>
+            </div>
+            <div class="stat-card">
+              <span class="label">Якість навчання</span>
+              <span class="value" id="group-quality">0.0%</span>
+            </div>
+            <div class="stat-card">
+              <span class="label">Успішність</span>
+              <span class="value" id="group-success">0.0%</span>
+            </div>
+            <div class="stat-card">
+              <span class="label">К-ть студентів</span>
+              <span class="value" id="group-count">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="results-zone" class="fade-in" style="display: none">
+          <div class="table-container">
+            <table id="results-table">
+              <thead>
+                <tr>
+                  <th class="text-center">№</th>
+                  <th>Прізвище, ім'я по батькові студентів</th>
+                  <th colspan="11"></th>
+                </tr>
+                <tr>
+                  <th class="text-center">1</th>
+                  <th class="text-center">2</th>
+                  <th class="text-center">A</th>
+                  <th class="text-center">B</th>
+                  <th class="text-center">C</th>
+                  <th class="text-center">D</th>
+                  <th class="text-center">E</th>
+                  <th class="text-center">F</th>
+                  <th class="text-center">FX</th>
+                  <th class="text-center">Відмінно</th>
+                  <th class="text-center">Добре</th>
+                  <th class="text-center">Задовільно</th>
+                  <th class="text-center">Незадовільно</th>
+                </tr>
+              </thead>
+              <tbody id="results-body"></tbody>
+            </table>
+          </div>
+          <div class="footer-actions" style="gap: 12px">
+            <button class="btn btn-outline" onclick="window.print()">
+              <i data-lucide="printer"></i> Друкувати таблицю
+            </button>
+            <button class="btn btn-outline" onclick="exportCSV()"><i data-lucide="download"></i> Зберегти CSV</button>
+          </div>
+        </div>
+
+        <div id="error-zone"></div>
+      </main>
+
+      <footer style="margin-top: 3rem; text-align: center; color: var(--text-secondary); font-size: 0.875rem">
+        <p>&copy; <span id="current-year"></span> Аналізатор успішності.</p>
+      </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
